@@ -13,7 +13,6 @@ import {
 import { useRouter } from "next/navigation";
 import VideoProgressSave from '../../../utils/VideoProgressSave';
 import { VideoLayout } from "./components/layouts/video-layout";
-// import { DefaultVideoKeyboardActionDisplay } from '@vidstack/react/player/layouts/default';
 import '@vidstack/react/player/styles/default/keyboard.css';
 import { updateEp } from "@/lib/EpHistoryfunctions";
 import { saveProgress } from "@/lib/AnilistUser";
@@ -89,7 +88,6 @@ function Player({ dataInfo, id, groupedEp, src, session, savedep, subtitles, thu
   }
 
   function onEnd() {
-    // console.log("End")
     setIsPlaying(false);
   }
 
@@ -103,12 +101,10 @@ function Player({ dataInfo, id, groupedEp, src, session, savedep, subtitles, thu
   }
 
   function onPlay() {
-    // console.log("play")
     setIsPlaying(true);
   }
 
   function onPause() {
-    // console.log("pause")
     setIsPlaying(false);
   }
 
@@ -211,10 +207,10 @@ function Player({ dataInfo, id, groupedEp, src, session, savedep, subtitles, thu
   }
 
   function onSourceChange() {
-    if(fullscreen){
-      console.log("true")
-    }else{
-      console.log("false")
+    if (fullscreen) {
+      console.log("true");
+    } else {
+      console.log("false");
     }
   }
 
@@ -227,7 +223,6 @@ function Player({ dataInfo, id, groupedEp, src, session, savedep, subtitles, thu
     console.log("Skipping Outro");
     Object.assign(playerRef.current ?? {}, { currentTime: skiptimes[1]?.endTime ?? 0 });
   }
-
 
   return (
     <MediaPlayer key={src} ref={playerRef} playsInline aspectRatio={16 / 9} load={settings?.load || 'idle'} muted={settings?.audio || false}
@@ -261,25 +256,8 @@ function Player({ dataInfo, id, groupedEp, src, session, savedep, subtitles, thu
         thumbnails={thumbnails ? process.env.NEXT_PUBLIC_PROXY_URI + '/' + thumbnails[0]?.src : ""}
         groupedEp={groupedEp}
       />
-      {/* <DefaultVideoKeyboardActionDisplay
-        icons={{
-          Play: null,
-          Pause: null,
-          Mute: null,
-          VolumeUp: null,
-          VolumeDown: null,
-          EnterFullscreen: null,
-          ExitFullscreen: null,
-          EnterPiP: null,
-          ExitPiP: null,
-          CaptionsOn: null,
-          CaptionsOff: null,
-          SeekForward: FastForwardIcon,
-          SeekBackward: FastBackwardIcon,
-        }}
-      /> */}
     </MediaPlayer>
   )
 }
 
-export default Player
+export default Player;

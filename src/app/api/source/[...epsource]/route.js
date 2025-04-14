@@ -1,74 +1,70 @@
-import axios from 'axios'
+import axios from 'axios';
 import { redis } from '@/lib/rediscache';
-import { NextResponse, NextRequest } from "next/server"
+import { NextResponse, NextRequest } from 'next/server';
 
-async function consumetEpisode(id) {
-    try {
-      const { data } = await axios.get(
-        `${process.env.CONSUMET_URI}/meta/anilist/watch/${id}`
-      );
-      return data;
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  }
-
-async function zoroEpisode(provider, episodeid, epnum, id, subtype) {
-    try {
-      const cleanEpisodeId = episodeid.replace("/watch/", "");
-      const { data } = await axios.get(`${process.env.ZORO_URI}/anime/episode-srcs?id=${cleanEpisodeId}&server=vidstreaming&category=${subtype}`);
+// AnimeKai from Consumet (replacement for Gogoanime)
+async function animekaiEpisode(id) {
+  try {
+    const { data } = await axios.get(
+      `${process.env.CONSUMET_URI}/meta/anilist/watch/${id}?provider=animekai`
+    );
     return data;
-    } catch (error) {
-      console.error(error);
-      return AnifyEpisode(provider, episodeid, epnum, id, subtype);
-    }
+  } catch (error) {
+    console.error('Animekai Episode Error:', error);
+    return null;
   }
-  
-  async function AnifyEpisode(provider, episodeid, epnum, id, subtype) {
-    try {
-      const { data } = await axios.get(
-        `https://anify.eltik.cc/sources?providerId=${provider}&watchId=${encodeURIComponent(
-          episodeid
-        )}&episodeNumber=${epnum}&id=${id}&subType=${subtype}`
-      );
-      return data;
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  }
-
-export const POST = async (req,{params}) => {
-  const id = params.epsource[0];
-  const {source, provider, episodeid, episodenum, subtype} = await req.json();
-    // let cacheTime = 25 * 60;
-    // let cached = await redis.get(`source:${params.epid[0]}`);
-
-    // if (cached) {
-    //     const cachedData = JSON.parse(cached);
-    //     return NextResponse.json(cachedData);
-    //   } else {
-    //     const data = await consumetEpisode(params.epid[0]);
-    
-    //     await redis.setex(`source:${params.epid[0]}`, cacheTime, JSON.stringify(data));
-    
-    //     return NextResponse.json(data);
-    //   }
-
-    // console.log(provider,episodeid,episodenum,id,subtype)
-    if (source === "consumet") {
-      const data = await consumetEpisode(episodeid);
-      return NextResponse.json(data);
-    }
-
-    if (source === "anify" && provider === "zoro") {
-      const data = await zoroEpisode(provider, episodeid, episodenum, id, subtype);
-      return NextResponse.json(data);
-    }
-
-    if(source === "anify"){
-      const data = await AnifyEpisode(provider, episodeid, episodenum, id, subtype);
-      return NextResponse.json(data);
-    }
 }
+
+// Zoro server from Consumet
+async function consumetZoroEpisode(id) {
+  try {
+    const { data } = await axios.get(
+      `${process.env.CONSUMET_URI}/meta/anilist/watch/${id}?provider=zoro`
+    );
+    return data;
+  } catch (error) {
+    console.error('Consumet Zoro Episode Error:', error);
+    return null;
+  }
+}
+
+// Anify fallback (still present as backup)
+async function AnifyEpisode(provider, episodeid, epnum, id, subtype) {
+  try {
+    const { data } = await axios.get(
+      `https://anify.eltik.cc/sources?providerId=${provider}&watchId=${encodeURIComponent(
+        episodeid
+      )}&episodeNumber=${epnum}&id=${id}&subType=${subtype}`
+    );
+    return data;
+  } catch (error) {
+    console.error('Anify Episode Error:', error);
+    return null;
+  }
+}
+
+export const POST = async (req, { params }) => {
+  const id = params.epsource[0];
+  const { source, provider, episodeid, episodenum, subtype } = await req.json();
+
+  if (source === 'consumet') {
+    // animekai as new gogoanime
+    if (provider === 'animekai') {
+      const data = await animekaiEpisode(episodeid);
+      return NextResponse.json(data);
+    }
+
+    // zoro via consumet
+    if (provider === 'zoro') {
+      const data = await consumetZoroEpisode(episodeid);
+      return NextResponse.json(data);
+    }
+  }
+
+  if (source === 'anify') {
+    const data = await AnifyEpisode(provider, episodeid, episodenum, id, subtype);
+    return NextResponse.json(data);
+  }
+
+  return NextResponse.json({ error: 'Invalid source or provider' }, { status: 400 });
+};

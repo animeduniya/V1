@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState, useEffect, useRef } from 'react'
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
@@ -23,7 +23,20 @@ function VidstackPlayer({ data, sources, skiptimes, epid, thumbnails, subtitles,
     const [autoSkip, setAutoSkip] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     let interval;
-    let autoNext = true
+    let autoNext = true;
+
+    // Replace Gogoanime and Zoro
+    const [resolvedProvider, setResolvedProvider] = useState(provider);
+
+    useEffect(() => {
+        let updatedProvider = provider;
+        if (provider === "gogoanime") {
+            updatedProvider = "animekai"; // Replacing gogoanime with animekai (consumet)
+        } else if (provider === "zoro") {
+            updatedProvider = "zoro"; // Still Zoro but use consumet's zoro endpoint
+        }
+        setResolvedProvider(updatedProvider);
+    }, [provider]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -35,25 +48,10 @@ function VidstackPlayer({ data, sources, skiptimes, epid, thumbnails, subtitles,
     }, []);
 
     useEffect(() => {
-        // if (subtitles && subtitles.length > 0) {
-        //     const track = new TextTrack({
-        //         kind: 'subtitles',
-        //         default: true,
-        //         label: 'English',
-        //         language: 'en-US',
-        //         type: 'vtt',
-        //         src: subtitles[0]?.url || ''
-        //     });
-
-        //     playerRef.current.textTracks.add(track);
-        // }
-
         playerRef.current?.subscribe(({ currentTime, duration }) => {
-
             if (skiptimes && skiptimes.length > 0) {
                 const opStart = skiptimes[0]?.startTime ?? 0;
                 const opEnd = skiptimes[0]?.endTime ?? 0;
-
                 const epStart = skiptimes[1]?.startTime ?? 0;
                 const epEnd = skiptimes[1]?.endTime ?? 0;
 
@@ -65,20 +63,16 @@ function VidstackPlayer({ data, sources, skiptimes, epid, thumbnails, subtitles,
 
                 if (autoSkip) {
                     if (currentTime > opStart && currentTime < opEnd) {
-                        console.log("Skipping OP...");
                         Object.assign(playerRef.current ?? {}, { currentTime: opEnd });
                         return null;
                     }
                     if (currentTime > epStart && currentTime < epEnd) {
-                        console.log("Skipping EP...");
                         Object.assign(playerRef.current ?? {}, { currentTime: epEnd });
                         return null;
                     }
                 }
             }
-
-        })
-
+        });
     }, []);
 
     function onCanPlay() {
@@ -98,26 +92,19 @@ function VidstackPlayer({ data, sources, skiptimes, epid, thumbnails, subtitles,
     }
 
     function onEnd() {
-        if (autoNext) {
-            getNextEpisode();
-        }
-        // console.log("End")
+        if (autoNext) getNextEpisode();
         setIsPlaying(false);
     }
 
     function onEnded() {
-        if (autoNext) {
-            getNextEpisode();
-        }
+        if (autoNext) getNextEpisode();
     }
 
     function onPlay() {
-        // console.log("play")
         setIsPlaying(true);
     }
 
     function onPause() {
-        // console.log("pause")
         setIsPlaying(false);
     }
 
@@ -141,9 +128,7 @@ function VidstackPlayer({ data, sources, skiptimes, epid, thumbnails, subtitles,
                     epnum: Number(currentep?.number) || Number(epnum),
                     duration: duration,
                     timeWatched: currentTime,
-                    provider: provider,
-                    //   nextId: navigation?.next?.id,
-                    //   nextNumber: navigation?.next?.number,
+                    provider: resolvedProvider,
                     subtype: subtype,
                     createdAt: new Date().toISOString(),
                 });
@@ -155,7 +140,7 @@ function VidstackPlayer({ data, sources, skiptimes, epid, thumbnails, subtitles,
         return () => {
             clearInterval(interval);
         };
-    }, [isPlaying, duration]);
+    }, [isPlaying, duration, resolvedProvider]);
 
     function onLoadedMetadata() {
         const seek = getVideoProgress(data?.id);
@@ -166,24 +151,22 @@ function VidstackPlayer({ data, sources, skiptimes, epid, thumbnails, subtitles,
             if (percentage >= 0.9) {
                 remote.seek(0);
             } else {
-                remote.seek(seekTime-3);
+                remote.seek(seekTime - 3);
             }
         }
     }
 
     function handleop() {
-        console.log("Skipping OP...");
         Object.assign(playerRef.current ?? {}, { currentTime: skiptimes[0]?.endTime ?? 0 });
     }
 
     function handleed() {
-        console.log("Skipping ED...");
         Object.assign(playerRef.current ?? {}, { currentTime: skiptimes[1]?.endTime ?? 0 });
     }
 
     return (
         <MediaPlayer key={sources} ref={playerRef} playsinline aspectRatio={16 / 9} load={settings?.load || 'idle'} muted={settings?.audio || false}
-        autoFocus={true} autoplay={settings?.autoplay || false} title={currentep?.title || `EP ${currentep?.number}`}
+            autoFocus={true} autoplay={settings?.autoplay || false} title={currentep?.title || `EP ${currentep?.number}`}
             data-hocus="true"
             className={`w-full h-full overflow-hidden cursor-pointer rounded-lg ${styles.mediaplayer}`}
             crossorigin={"anonymous"}
@@ -198,19 +181,18 @@ function VidstackPlayer({ data, sources, skiptimes, epid, thumbnails, subtitles,
             onPlay={onPlay}
             onPause={onPause}
             onLoadedMetadata={onLoadedMetadata}
-        // onTimeUpdate={onTimeUpdate}
         >
             <div className={styles.bigplaycontainer}>
                 <PlayButton className={styles.vdsbutton}>
                     <span className="backdrop-blur-sm scale-[160%] absolute duration-200 ease-out flex shadow bg-white/10 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-pointer">
-                        <svg className="w-7 h-7 m-2" viewBox="0 0 32 32" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><path d="M10.6667 6.6548C10.6667 6.10764 11.2894 5.79346 11.7295 6.11862L24.377 15.4634C24.7377 15.7298 24.7377 16.2692 24.3771 16.5357L11.7295 25.8813C11.2895 26.2065 10.6667 25.8923 10.6667 25.3451L10.6667 6.6548Z" fill="currentColor"></path></svg>
+                        <svg className="w-7 h-7 m-2" viewBox="0 0 32 32" fill="none"><path d="M10.6667 6.6548C10.6667 6.10764 11.2894 5.79346 11.7295 6.11862L24.377 15.4634C24.7377 15.7298 24.7377 16.2692 24.3771 16.5357L11.7295 25.8813C11.2895 26.2065 10.6667 25.8923 10.6667 25.3451L10.6667 6.6548Z" fill="currentColor" /></svg>
                     </span>
                 </PlayButton>
             </div>
             <MediaProvider>
-            {subtitles && subtitles?.map((track) => (
-            <Track {...track} key={track.src} />
-          ))}
+                {subtitles && subtitles.map((track) => (
+                    <Track {...track} key={track.src} />
+                ))}
             </MediaProvider>
             <Gesture className="vds-gesture" event="pointerup" action="toggle:paused" />
             <Gesture className="vds-gesture" event="pointerup" action="toggle:controls" />
@@ -219,9 +201,9 @@ function VidstackPlayer({ data, sources, skiptimes, epid, thumbnails, subtitles,
             <Gesture className="vds-gesture" event="dblpointerup" action="toggle:fullscreen" />
             {opbutton && <button onClick={handleop} className='absolute bottom-[83px] right-4 z-[80] bg-white text-black py-2 px-3 rounded-[8px] font-medium'>Skip Opening</button>}
             {edbutton && <button onClick={handleed} className='absolute bottom-[83px] right-4 z-[80] bg-white text-black py-2 px-3 rounded-[8px] font-medium'>Skip Ending</button>}
-            <DefaultVideoLayout icons={defaultLayoutIcons} thumbnails={thumbnails ? `https://cors-anywhere-livid-six.vercel.app/` + thumbnails[0]?.url : ""} />
+            <DefaultVideoLayout icons={defaultLayoutIcons} thumbnails={thumbnails ? `https://cors-anywhere-livid-six.vercel.app/${thumbnails[0]?.url}` : ""} />
         </MediaPlayer>
     )
 }
 
-export default VidstackPlayer
+export default VidstackPlayer;
